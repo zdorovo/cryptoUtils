@@ -1,32 +1,33 @@
-#include "cryptoUtils.h"
+#include"cryptoUtils.h"
 #include<cstdlib>
 #include<time.h>
 #include<iostream>
+#include<climits> 
 using namespace std;
 
 
 /*******************************************
  * Some utils                              *
  ******************************************/
-unsigned int squareMod(unsigned int base, unsigned int modulus){
+ int squareMod( int base,  int modulus){
     base = base % modulus;
     if( base > modulus/2){
         base = modulus - base; //this is -base. its square is the
                                //same though. This should prevent
                                //help overflow errors somewhat.
                                //idk what to do if base is between
-                               //sqrt INT_MAX and INT_MAX -s sqrt(INT_MAX)
+                               //sqrt INT_MAX and modulus - sqrt(INT_MAX)
                                //though
     }
 
     return (base*base) % modulus;
 }
 
-unsigned int productMod(unsigned int a, unsigned int b, unsigned int modulus){
+ int productMod( int a,  int b,  int modulus){
     return ((a%modulus)*(b%modulus)) % modulus; //what about overflow??
 }
 
-unsigned int raisePower(unsigned int base, unsigned int exponent, unsigned int modulus){
+ int raisePower( int base,  int exponent,  int modulus){
     base = base % modulus; 
     //some base cases... "base" hehe
     if( base == 0 )
@@ -41,12 +42,11 @@ unsigned int raisePower(unsigned int base, unsigned int exponent, unsigned int m
         return raisePower( squareMod( base, modulus), exponent/2, modulus);
     else
         return productMod(base, raisePower( squareMod( base, modulus), (exponent-1)/2, modulus), modulus);
-        //i should probably also have a productMod function or something. How do you avoid overflow ??
 }
 
 //solve for xa + yb = gcd(a,b)
 //this was shamelessly stolen from geeksforgeeks.org
-unsigned int gcdExtended(unsigned int a, unsigned int b, int *x, int *y) 
+ int gcdExtended( int a,  int b, int *x, int *y) 
 {
     // Base Case
     if (a == 0)
@@ -71,17 +71,21 @@ unsigned int gcdExtended(unsigned int a, unsigned int b, int *x, int *y)
  * RSA_doer implementation                 *
  ******************************************/
 
-unsigned int RSA_doer::encrypt(unsigned int m){
+ int RSA_doer::encrypt( int m){
     return raisePower(m, this->pub_key, modulus);
 }
 
-unsigned int RSA_doer::decrypt(unsigned int m){
+ int RSA_doer::decrypt( int m){
     return raisePower(m, this->priv_key, modulus);
 }
 
 RSA_doer::RSA_doer(){
-    p = 24571;
-    q = 115249; //"Cuban" primes!
+//    p = 24571;
+//    q = 115249; //"Cuban" primes!
+//
+//    let's try something smaller first
+    p = 101;
+    q = 97;
                 //todo: write a genPrime() function
     phi = (p-1)*(q-1);
     modulus = p*q;
@@ -90,11 +94,25 @@ RSA_doer::RSA_doer(){
 
     int a,b;
     
-    pub_key = rand() % modulus; 
+    pub_key = rand() % modulus;  //I'm free to mod out by anything large here
     while ( gcdExtended(pub_key, phi, &a, &b) != 1){
         pub_key = rand() % modulus; 
     }
 
-    priv_key = (unsigned int) (a % phi);
+    priv_key = a; //or a % phi? It shouldn't make a difference
+}
+
+signedMessage RSA_doer::sign(int m){
+    signedMessage toReturn;
+
+    toReturn.message = m;
+    toReturn.signature = decrypt(m);
+
+    return toReturn;
+}
+
+bool RSA_doer::verify(signedMessage possibleForgery){
+    return possibleForgery.message == encrypt(possibleForgery.signature);
+
 }
 

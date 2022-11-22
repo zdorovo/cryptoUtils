@@ -1,0 +1,2 @@
+- have two separate RSA\_doers who talk to each other
+- I should have a PubKey type which includes the exponent e as well as the modulus
